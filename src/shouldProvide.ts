@@ -4,9 +4,10 @@ export function shouldProvide(
   document: vscode.TextDocument,
   position: vscode.Position
 ): boolean {
+  console.warn('inshould');
   return (
     isCursorInDepsBlock(document, position) &&
-    isCursorInString(document, position)
+    (isCursorInString(document, position) || true)
   );
 }
 

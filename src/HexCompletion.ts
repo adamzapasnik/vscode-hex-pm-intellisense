@@ -6,7 +6,11 @@ export class HexCompletion implements vscode.CompletionItemProvider {
   provideCompletionItems(
     document: vscode.TextDocument,
     position: vscode.Position
-  ): vscode.CompletionItem[] | Thenable<vscode.CompletionItem[]> {
-    return shouldProvide(document, position) ? provide(document, position) : Promise.resolve([]);
+  ):
+    | vscode.CompletionItem[]
+    | Thenable<vscode.CompletionItem[] | vscode.CompletionList> {
+    return shouldProvide(document, position)
+      ? provide(document, position)
+      : Promise.resolve([]);
   }
 }
