@@ -3,31 +3,45 @@ import * as hexpm from './hexpm';
 
 const semver = require('semver');
 
-export function provide(
+export function providePackageName(
+  document: vscode.TextDocument,
+  position: vscode.Position
+): Thenable<vscode.CompletionItem[] | vscode.CompletionList | undefined> {
+  const line = document.lineAt(position.line);
+  const packageName = getPackageName(line, position);
+  console.warn('pname', packageName)
+  // if (!packageName) {
+  //   return Promise.resolve([]);
+  // }
+  // API will return only exact matches if packageName length is < 3
+  // https://github.com/hexpm/hexpm/blob/f2e7e946ccf4a402aa26594a6fa412332a7f7c5f/lib/hexpm/repository/package.ex#L335
+  if (packageName && packageName.length >= 3) {
+    return hexpm
+      .getPackages(packageName)
+      .then((packages) => {
+        console.warn('pck', completionItemsForPackages(packages, position, line))
+        return completionItemsForPackages(packages, position, line)
+      });
+  }
+
+  // return Promise.resolve(undefined)
+  return Promise.resolve({
+    isIncomplete: true,
+    items: [new vscode.CompletionItem(':a', vscode.CompletionItemKind.Module)]
+  });
+}
+
+export function providePackageVersion(
   document: vscode.TextDocument,
   position: vscode.Position
 ): Thenable<vscode.CompletionItem[] | vscode.CompletionList> {
   const line = document.lineAt(position.line);
-  console.warn('imhere');
-  console.warn(line.text);
   const packageName = getPackageName(line, position);
 
-  // .then(console.warn);
   if (!packageName) {
     return Promise.resolve([]);
   }
 
-  console.warn(packageName);
-  if (packageName.length >= 3) {
-    return hexpm
-      .getPackages(packageName)
-      .then((res) => completionItemsForPackages(res));
-  }
-
-  return Promise.resolve(<vscode.CompletionList>{
-    isIncomplete: true,
-    items: [],
-  });
   return getVersionsForPackage(packageName);
 }
 
@@ -53,7 +67,7 @@ function getPackageName(
 ): String {
   const tupleIndex = tupleBeginIndex(line, position);
   const text = line.text.trim().substr(tupleIndex);
-  const regex = /:[a-zA-Z_]+/;
+  const regex = /:?[a-zA-Z_]+/;
   const atoms = text.match(regex) || [''];
   const lastAtom = atoms[atoms.length - 1];
   const packageName = lastAtom.replace(/^:/, '');
@@ -98,18 +112,25 @@ function completionItemsForReleases(releases: any[]): vscode.CompletionItem[] {
     return completionItem;
   });
 }
-
-// TODO: isIncomplete
-// TODO: pewnie powinny byc dwa osobne providery czy cos
-function completionItemsForPackages(packages: any[]): vscode.CompletionList {
+function completionItemsForPackages(packages: any[], position: vscode.Position, line: vscode.TextLine): vscode.CompletionList {
   return {
     isIncomplete: packages.length === 100,
-    items: packages.map((rel, index, arr) => {
+    items: packages.map((pack, index, arr) => {
       const completionItem = new vscode.CompletionItem(
-        rel.name,
-        vscode.CompletionItemKind.Property
-      );
-      return completionItem;
-    }),
+        ":" + pack.name,
+        vscode.CompletionItemKind.Module
+      )
+      // Inspired by https://github.com/szTheory/vsc-hex-lens/blob/6f5caf29a2576952b8b0476d69c4b84d20d21e0a/src/providers/abstractProvider.ts#L49
+      completionItem.documentation = new vscode.MarkdownString(
+        `${pack.name} (latest: ${pack.latest_stable_version})\n\n${pack.meta.description}\n\n${pack.html_url}`
+      )
+      completionItem.insertText = pack.name
+      completionItem.filterText = pack.name
+
+      return completionItem
+  }
+    ),
   };
 }
+//https://github.com/microsoft/vscode/issues/105899
+//https://github.com/microsoft/vscode/issues/99504

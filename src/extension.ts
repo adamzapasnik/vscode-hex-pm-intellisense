@@ -6,10 +6,13 @@ import { HexCompletion } from './HexCompletion';
 export function activate(context: vscode.ExtensionContext) {
   const provider = new HexCompletion();
   const selector = [
-    { language: 'elixir', pattern: '**/mix.exs' },
-    { language: 'Elixir', pattern: '**/mix.exs' },
+    { language: 'elixir', pattern: '**/mix.exs', schema: 'file' },
+    { language: 'Elixir', pattern: '**/mix.exs', schema: 'file' },
   ];
-  const triggers = ['"', ' ', ':'];
+  const elixirLSExtension = vscode.extensions.getExtension('jakebecker.elixir-ls')
+  // TODO: probably can stick only to {
+  const packageNameTrigger = elixirLSExtension ? '{' : ':'
+  const triggers = [packageNameTrigger,  '"', ' '];
   const hexCompletion = vscode.languages.registerCompletionItemProvider(
     selector,
     provider,

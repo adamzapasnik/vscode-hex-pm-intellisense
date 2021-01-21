@@ -1,13 +1,23 @@
 import * as vscode from 'vscode';
 
-export function shouldProvide(
+export function shouldProvidePackageVersion(
   document: vscode.TextDocument,
   position: vscode.Position
 ): boolean {
-  console.warn('inshould');
   return (
     isCursorInDepsBlock(document, position) &&
-    (isCursorInString(document, position) || true)
+    isCursorInString(document, position)
+  );
+}
+
+export function shouldProvidePackageName(
+  document: vscode.TextDocument,
+  position: vscode.Position
+): boolean {
+  return (
+    isCursorInDepsBlock(document, position) &&
+    !isCursorInString(document, position) &&
+    isCursorInPackageNamePosition(document, position) || true
   );
 }
 
@@ -55,4 +65,19 @@ function isCursorInString(
   }
 
   return true;
+}
+
+function isCursorInPackageNamePosition(
+  document: vscode.TextDocument,
+  position: vscode.Position
+): boolean {
+  const line = document.lineAt(position.line);
+
+  const leftText = document.getText(
+    new vscode.Range(line.range.start, position)
+  );
+
+  console.warn('test', /^{:[a-zA-Z_]*$/.test(leftText.trimLeft()))
+
+  return /^{:[a-zA-Z_]*$/.test(leftText.trimLeft())
 }
